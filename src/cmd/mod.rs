@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
+
+mod cat_file;
 
 #[derive(Parser)]
 pub struct Command {
@@ -9,30 +11,17 @@ pub struct Command {
 
 #[derive(Subcommand)]
 enum Subcommands {
-    #[clap(name = "add")]
-    Add(Add),
+    #[clap(name = "cat-file")]
+    CatFile(cat_file::Command),
 }
 
 impl Command {
     pub fn run() -> Result<()> {
         let command = Self::parse();
         match command.subcommands {
-            Subcommands::Add(add) => add
+            Subcommands::CatFile(cmd) => cmd
                 .execute()
-                .with_context(|| format!("Failed to execute add command")),
+                .with_context(|| format!("Failed to execute cat-file command")),
         }
-    }
-}
-
-#[derive(Args)]
-struct Add {
-    #[clap(name = "NAME")]
-    name: String,
-}
-
-impl Add {
-    fn execute(&self) -> Result<()> {
-        println!("Add: {}", self.name);
-        Ok(())
     }
 }
