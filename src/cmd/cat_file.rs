@@ -1,5 +1,5 @@
 use crate::git::db::Database;
-use crate::git::object::ObjectType::{Blob, Tree};
+use crate::git::object::ObjectType::{Blob, Commit, Tree};
 use anyhow::{Context, Result};
 use clap::Args;
 
@@ -40,6 +40,16 @@ impl Command {
                     for entry in tree.entries {
                         println!("{} {} {}", entry.mode, entry.hash, entry.name);
                     }
+                }
+                Commit(commit) => {
+                    println!("tree {}", commit.tree);
+                    for parent_hash in commit.parents {
+                        println!("parent {}", parent_hash);
+                    }
+                    println!("author {}", commit.author);
+                    println!("committer {}", commit.committer);
+                    println!("");
+                    println!("{}", commit.message);
                 }
                 _ => {
                     anyhow::bail!("Pretty print is not supported for this object type");

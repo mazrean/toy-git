@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{BufRead, BufReader, Read};
 
 use super::utils::read_null_terminated_string;
 use anyhow::{Context, Result};
@@ -37,7 +37,7 @@ pub enum ObjectType {
     Undefined,
     Blob(Blob),
     Tree(Tree),
-    Commit,
+    Commit(Commit),
     Tag,
 }
 
@@ -50,7 +50,9 @@ impl ObjectType {
             "tree" => Self::Tree(
                 Tree::from_reader(content_reader).with_context(|| "Failed to read tree")?,
             ),
-            "commit" => Self::Commit,
+            "commit" => Self::Commit(
+                Commit::from_reader(content_reader).with_context(|| "Failed to read commit")?,
+            ),
             "tag" => Self::Tag,
             _ => Self::Undefined,
         };
@@ -62,7 +64,7 @@ impl ObjectType {
             Self::Undefined => "undefined",
             Self::Blob(_) => "blob",
             Self::Tree(_) => "tree",
-            Self::Commit => "commit",
+            Self::Commit(_) => "commit",
             Self::Tag => "tag",
         }
     }
@@ -132,5 +134,59 @@ impl TreeEntry {
             return Ok(None);
         }
         Ok(Some(Self { mode, name, hash }))
+    }
+}
+
+pub struct Commit {
+    pub tree: String,
+    pub parents: Vec<String>,
+    pub author: String,
+    pub committer: String,
+    pub message: String,
+}
+
+impl Commit {
+    pub fn from_reader(reader: impl Read) -> Result<Self> {
+        let mut tree: Option<String> = Option::None;
+        let mut parents: Vec<String> = Vec::new();
+        let mut author: Option<String> = Option::None;
+        let mut committer: Option<String> = Option::None;
+        let mut message = String::new();
+        let mut end_of_header = false;
+        for line in BufReader::new(reader).lines() {
+            let line = line.with_context(|| "Failed to read commit object")?;
+
+            if end_of_header {
+                message.push_str(&line);
+                message.push('\n');
+                continue;
+            }
+
+            if line.is_empty() {
+                end_of_header = true;
+                continue;
+            }
+            if line.starts_with("tree ") {
+                tree = Some(line.trim_start_matches("tree ").to_string());
+            } else if line.starts_with("parent ") {
+                parents.push(line.trim_start_matches("parent ").to_string());
+            } else if line.starts_with("author ") {
+                author = Some(line.trim_start_matches("author ").to_string());
+            } else if line.starts_with("committer ") {
+                committer = Some(line.trim_start_matches("committer ").to_string());
+            }
+        }
+
+        if parents.is_empty() {
+            anyhow::bail!("Missing parents");
+        }
+
+        Ok(Self {
+            tree: tree.ok_or(anyhow::anyhow!("Missing tree"))?,
+            parents,
+            author: author.ok_or(anyhow::anyhow!("Missing author"))?,
+            committer: committer.ok_or(anyhow::anyhow!("Missing committer"))?,
+            message,
+        })
     }
 }
