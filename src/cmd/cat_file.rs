@@ -1,5 +1,5 @@
 use crate::git::db::Database;
-use crate::git::object::ObjectType::Blob;
+use crate::git::object::ObjectType::{Blob, Tree};
 use anyhow::{Context, Result};
 use clap::Args;
 
@@ -35,6 +35,11 @@ impl Command {
             match object.object_type {
                 Blob(blob) => {
                     println!("{}", std::str::from_utf8(&blob.content)?);
+                }
+                Tree(tree) => {
+                    for entry in tree.entries {
+                        println!("{} {} {}", entry.mode, entry.hash, entry.name);
+                    }
                 }
                 _ => {
                     anyhow::bail!("Pretty print is not supported for this object type");
