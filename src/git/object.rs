@@ -38,7 +38,7 @@ pub enum ObjectType {
     Blob(Blob),
     Tree(Tree),
     Commit(Commit),
-    Tag,
+    Tag(Tag),
 }
 
 impl ObjectType {
@@ -53,7 +53,9 @@ impl ObjectType {
             "commit" => Self::Commit(
                 Commit::from_reader(content_reader).with_context(|| "Failed to read commit")?,
             ),
-            "tag" => Self::Tag,
+            "tag" => {
+                Self::Tag(Tag::from_reader(content_reader).with_context(|| "Failed to read tag")?)
+            }
             _ => Self::Undefined,
         };
         Ok(object_type)
@@ -65,7 +67,7 @@ impl ObjectType {
             Self::Blob(_) => "blob",
             Self::Tree(_) => "tree",
             Self::Commit(_) => "commit",
-            Self::Tag => "tag",
+            Self::Tag(_) => "tag",
         }
     }
 }
@@ -186,6 +188,56 @@ impl Commit {
             parents,
             author: author.ok_or(anyhow::anyhow!("Missing author"))?,
             committer: committer.ok_or(anyhow::anyhow!("Missing committer"))?,
+            message,
+        })
+    }
+}
+
+pub struct Tag {
+    pub object: String,
+    pub object_type: String,
+    pub tag: String,
+    pub tagger: String,
+    pub message: String,
+}
+
+impl Tag {
+    pub fn from_reader(reader: impl Read) -> Result<Self> {
+        let mut object: Option<String> = Option::None;
+        let mut object_type: Option<String> = Option::None;
+        let mut tag: Option<String> = Option::None;
+        let mut tagger: Option<String> = Option::None;
+        let mut message = String::new();
+        let mut end_of_header = false;
+        for line in BufReader::new(reader).lines() {
+            let line = line.with_context(|| "Failed to read tag object")?;
+
+            if end_of_header {
+                message.push_str(&line);
+                message.push('\n');
+                continue;
+            }
+
+            if line.is_empty() {
+                end_of_header = true;
+                continue;
+            }
+            if line.starts_with("object ") {
+                object = Some(line.trim_start_matches("object ").to_string());
+            } else if line.starts_with("type ") {
+                object_type = Some(line.trim_start_matches("type ").to_string());
+            } else if line.starts_with("tag ") {
+                tag = Some(line.trim_start_matches("tag ").to_string());
+            } else if line.starts_with("tagger ") {
+                tagger = Some(line.trim_start_matches("tagger ").to_string());
+            }
+        }
+
+        Ok(Self {
+            object: object.ok_or(anyhow::anyhow!("Missing object"))?,
+            object_type: object_type.ok_or(anyhow::anyhow!("Missing object type"))?,
+            tag: tag.ok_or(anyhow::anyhow!("Missing tag"))?,
+            tagger: tagger.ok_or(anyhow::anyhow!("Missing tagger"))?,
             message,
         })
     }

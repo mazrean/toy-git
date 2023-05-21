@@ -1,5 +1,5 @@
 use crate::git::db::Database;
-use crate::git::object::ObjectType::{Blob, Commit, Tree};
+use crate::git::object::ObjectType::{Blob, Commit, Tag, Tree};
 use anyhow::{Context, Result};
 use clap::Args;
 
@@ -50,6 +50,14 @@ impl Command {
                     println!("committer {}", commit.committer);
                     println!("");
                     println!("{}", commit.message);
+                }
+                Tag(tag) => {
+                    println!("object {}", tag.object);
+                    println!("type {}", tag.object_type);
+                    println!("tag {}", tag.tag);
+                    println!("tagger {}", tag.tagger);
+                    println!("");
+                    println!("{}", tag.message);
                 }
                 _ => {
                     anyhow::bail!("Pretty print is not supported for this object type");
