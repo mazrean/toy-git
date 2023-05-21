@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
 mod cat_file;
+mod log;
 
 #[derive(Parser)]
 pub struct Command {
@@ -13,6 +14,8 @@ pub struct Command {
 enum Subcommands {
     #[clap(name = "cat-file")]
     CatFile(cat_file::Command),
+    #[clap(name = "log")]
+    Log(log::Command),
 }
 
 impl Command {
@@ -22,6 +25,9 @@ impl Command {
             Subcommands::CatFile(cmd) => cmd
                 .execute()
                 .with_context(|| format!("Failed to execute cat-file command")),
+            Subcommands::Log(cmd) => cmd
+                .execute()
+                .with_context(|| format!("Failed to execute log command")),
         }
     }
 }

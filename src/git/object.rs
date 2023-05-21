@@ -179,10 +179,6 @@ impl Commit {
             }
         }
 
-        if parents.is_empty() {
-            anyhow::bail!("Missing parents");
-        }
-
         Ok(Self {
             tree: tree.ok_or(anyhow::anyhow!("Missing tree"))?,
             parents,
