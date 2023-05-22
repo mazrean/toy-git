@@ -44,16 +44,16 @@ pub enum ObjectType {
 impl ObjectType {
     fn new(object_type: &str, content_reader: &mut impl Read) -> Result<Self> {
         let object_type = match object_type {
-            "blob" => Self::Blob(
+            Blob::ID => Self::Blob(
                 Blob::from_reader(content_reader).with_context(|| "Failed to read blob")?,
             ),
-            "tree" => Self::Tree(
+            Tree::ID => Self::Tree(
                 Tree::from_reader(content_reader).with_context(|| "Failed to read tree")?,
             ),
-            "commit" => Self::Commit(
+            Commit::ID => Self::Commit(
                 Commit::from_reader(content_reader).with_context(|| "Failed to read commit")?,
             ),
-            "tag" => {
+            Tag::ID => {
                 Self::Tag(Tag::from_reader(content_reader).with_context(|| "Failed to read tag")?)
             }
             _ => Self::Undefined,
@@ -61,13 +61,13 @@ impl ObjectType {
         Ok(object_type)
     }
 
-    pub fn as_str(&self) -> &str {
+    pub fn type_id(&self) -> &'static str {
         match self {
             Self::Undefined => "undefined",
-            Self::Blob(_) => "blob",
-            Self::Tree(_) => "tree",
-            Self::Commit(_) => "commit",
-            Self::Tag(_) => "tag",
+            Self::Blob(_) => Blob::ID,
+            Self::Tree(_) => Tree::ID,
+            Self::Commit(_) => Commit::ID,
+            Self::Tag(_) => Tag::ID,
         }
     }
 }
@@ -77,6 +77,8 @@ pub struct Blob {
 }
 
 impl Blob {
+    const ID: &'static str = "blob";
+
     pub fn from_reader(mut reader: impl Read) -> Result<Self> {
         let mut content = Vec::new();
         reader
@@ -97,6 +99,8 @@ pub struct TreeEntry {
 }
 
 impl Tree {
+    const ID: &'static str = "tree";
+
     pub fn from_reader(mut reader: impl Read) -> Result<Self> {
         let mut entries: Vec<TreeEntry> = Vec::new();
         while let Some(entry) =
@@ -148,6 +152,8 @@ pub struct Commit {
 }
 
 impl Commit {
+    const ID: &'static str = "commit";
+
     pub fn from_reader(reader: impl Read) -> Result<Self> {
         let mut tree: Option<String> = Option::None;
         let mut parents: Vec<String> = Vec::new();
@@ -198,6 +204,8 @@ pub struct Tag {
 }
 
 impl Tag {
+    const ID: &'static str = "tag";
+
     pub fn from_reader(reader: impl Read) -> Result<Self> {
         let mut object: Option<String> = Option::None;
         let mut object_type: Option<String> = Option::None;

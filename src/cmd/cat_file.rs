@@ -22,7 +22,7 @@ impl Command {
             .with_context(|| format!("Failed to read object {}", self.object))?;
 
         if self.object_type {
-            println!("{}", object.object_type.as_str());
+            println!("{}", object.object_type.type_id());
             return Ok(());
         }
 
